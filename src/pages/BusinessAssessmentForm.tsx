@@ -5,7 +5,7 @@ import PageMeta from "../components/common/PageMeta";
 
 export default function BusinessAssessmentForm() {
   const navigate = useNavigate();
-  const { input, updateInput } = useVyapar();
+  const { input, updateInput, generateReport, isGenerating } = useVyapar();
 
   const [formData, setFormData] = useState({ ...input });
   const [submitted, setSubmitted] = useState(false);
@@ -33,13 +33,12 @@ export default function BusinessAssessmentForm() {
     "Kannada (ಕನ್ನಡ)",
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     updateInput(formData);
     setSubmitted(true);
-    setTimeout(() => {
-      navigate("/");
-    }, 600);
+    await generateReport(formData);
+    navigate("/");
   };
 
   return (
@@ -77,8 +76,9 @@ export default function BusinessAssessmentForm() {
         </div>
 
         {submitted && (
-          <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-900/50 dark:bg-green-900/20 dark:text-green-300">
-            ✓ Business details saved successfully! Redirecting to Dashboard...
+          <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 text-brand-800 dark:border-brand-900/50 dark:bg-brand-900/20 dark:text-brand-300 flex items-center gap-2">
+            <span className="animate-spin text-lg">⚙️</span>
+            {isGenerating ? "Analyzing hyper-local market data and structuring financial plan with AI..." : "Business details saved successfully! Redirecting to Dashboard..."}
           </div>
         )}
 
@@ -243,9 +243,10 @@ export default function BusinessAssessmentForm() {
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition"
+              disabled={isGenerating}
+              className={`rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition \${isGenerating ? "bg-brand-400 cursor-not-allowed" : "bg-brand-500 hover:bg-brand-600"}`}
             >
-              Generate Feasibility Report & Financial Roadmap →
+              {isGenerating ? "Generating..." : "Generate Feasibility Report & Financial Roadmap →"}
             </button>
           </div>
         </form>

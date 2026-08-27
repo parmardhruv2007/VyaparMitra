@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useCallback } from "react";
+import { aiAdvisorService } from "../services/aiAdvisorService";
 
 export interface BusinessInputData {
   state: string;
@@ -66,6 +67,8 @@ interface VyaparContextType {
   swot: SwotAndRisk;
   report: FeasibilityReport;
   updateInput: (fields: Partial<BusinessInputData>) => void;
+  generateReport: (data: BusinessInputData) => Promise<void>;
+  isGenerating: boolean;
 }
 
 // Helper to compute financial calculations according to PRD Rules
@@ -190,6 +193,11 @@ const VyaparContext = createContext<VyaparContextType | undefined>(undefined);
 export const VyaparProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [input, setInput] = useState<BusinessInputData>(defaultInput);
   const [financials, setFinancials] = useState<FinancialCalculation>(() => computeFinancials(defaultInput.marginCapital));
+  
+  const [market, setMarket] = useState<MarketData>(defaultMarket);
+  const [swot, setSwot] = useState<SwotAndRisk>(defaultSwot);
+  const [report, setReport] = useState<FeasibilityReport>(defaultReport);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const updateInput = (fields: Partial<BusinessInputData>) => {
     setInput((prev) => {
@@ -201,16 +209,33 @@ export const VyaparProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
+  const generateReport = useCallback(async (data: BusinessInputData) => {
+    setIsGenerating(true);
+    try {
+      const generated = await aiAdvisorService.generateFeasibilityReport(data);
+      setMarket(generated.marketData);
+      setSwot(generated.swotAndRisk);
+      setReport(generated.feasibilityReport);
+    } catch (error) {
+      console.error("Failed to generate report:", error);
+      // Fallback to defaults or keep existing state
+    } finally {
+      setIsGenerating(false);
+    }
+  }, []);
+
   return (
     <VyaparContext.Provider
       value={{
         input,
         setInput,
         financials,
-        market: defaultMarket,
-        swot: defaultSwot,
-        report: defaultReport,
+        market,
+        swot,
+        report,
         updateInput,
+        generateReport,
+        isGenerating
       }}
     >
       {children}

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useVyapar } from "../context/VyaparContext";
 import PageMeta from "../components/common/PageMeta";
 import ComponentCard from "../components/common/ComponentCard";
+import { aiAdvisorService } from "../services/aiAdvisorService";
 
 interface ChatMessage {
   sender: "user" | "ai";
@@ -22,34 +23,25 @@ export default function AiAdvisor() {
 
   const [userInputText, setUserInputText] = useState("");
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userInputText.trim()) return;
 
+    const userText = userInputText;
     const userMsg: ChatMessage = {
       sender: "user",
-      text: userInputText,
+      text: userText,
       time: "Just now",
     };
 
     setMessages((prev) => [...prev, userMsg]);
     setUserInputText("");
 
-    // Simulate AI response based on PRD module logic
-    setTimeout(() => {
-      let responseText = "";
-      const lower = userInputText.toLowerCase();
-
-      if (lower.includes("risk") || lower.includes("threat") || lower.includes("problem")) {
-        responseText = `In ${input.block} block, local risks for ${input.category} include seasonal feed price increases during summer and dependency on single milk collection hubs. We recommend installing a small solar power backup unit and forming direct B2B tie-ups with regional highway dhabas to mitigate cash flow risks.`;
-      } else if (lower.includes("loan") || lower.includes("scheme") || lower.includes("bank")) {
-        responseText = `You qualify for the ${financials.scheme.name} offering 90% agency financing (₹${financials.maxLoanAmount.toLocaleString("en-IN")}) at ${financials.scheme.interestRate}% interest per annum. You also get a ${financials.scheme.moratoriumMonths}-month moratorium grace period before principal repayments begin!`;
-      } else if (lower.includes("price") || lower.includes("market") || lower.includes("competitor")) {
-        responseText = `Based on regional purchasing power in ${input.district}, your recommended pricing per unit gives a 15-20% margin above local production cost. Competitor density is currently Moderate (4 nearby registered units within 10 km).`;
-      } else {
-        responseText = `Based on your available capital of ₹${input.marginCapital.toLocaleString("en-IN")}, your overall viability score is 84/100 (Highly Viable). Your 6-month moratorium period allows you to establish smooth supply operations before full EMI repayments start.`;
-      }
-
+    try {
+      // Build brief chat history
+      const historyStr = messages.slice(-4).map(m => `${m.sender}: ${m.text}`).join("\n");
+      const responseText = await aiAdvisorService.generateChatResponse(input, userText, historyStr);
+      
       setMessages((prev) => [
         ...prev,
         {
@@ -58,7 +50,16 @@ export default function AiAdvisor() {
           time: "Just now",
         },
       ]);
-    }, 800);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "ai",
+          text: "I am currently experiencing connection issues. Please try again later.",
+          time: "Just now",
+        },
+      ]);
+    }
   };
 
   return (
